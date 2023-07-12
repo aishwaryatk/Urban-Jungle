@@ -1,0 +1,116 @@
+{% extends 'customer/base.html' %}
+
+{% block content %}
+<div class="container mb-5">
+    <div class="row justify-content-center mt-1">
+        <div class="col-md-5 col-sm-12 p-4 text-center">
+            <h1>Order Submitted!</h1>
+            <p>You should receive a confirmation email soon.</p>
+            <a href="{% url 'index' %}">Go to the homepage</a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-5 col-sm-12 text-center">
+            <h3 class="pb-3">Order Summary:</h3>
+            {% for item in items.all %}
+                <p>{{ item.name }} <span class="pl-3">{{ item.price }}</span></p>
+            {% endfor %}
+
+            <p class="font-weight-bold pt-4">Total: {{ price }}</p>
+        </div>
+    </div>
+    <div class="row justify-content-center pb-2 pt-5">
+        <div class="col-md-6 text-center">
+            <h3>Pay Now or Pay With Cash At Delivery</h3>
+        </div>
+    </div>
+    <div class="row justify-content-center pb-5">
+        <div class="col-md-6 text-center">
+            <div id="paypal-button"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.paypalobjects.com/api/checkout.js"></script>
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+  paypal.Button.render({
+    // Configure environment
+    env: 'sandbox',
+    client: {
+      sandbox: 'ATf0mGB3vK4K0ruj9oujCFC_YSC_2W-PmNuNYNdcqdixOKmz7mic_Wadms0Ua7d7X9T4sl9phxJwwgIh',
+      production: 'demo_production_client_id'
+    },
+    // Customize button (optional)
+    locale: 'en_US',
+    style: {
+      size: 'large',
+      color: 'blue',
+      shape: 'rect',
+    },
+
+    // Enable Pay Now checkout flow (optional)
+    commit: true,
+
+    // Set up a payment
+    payment: function(data, actions) {
+      return actions.payment.create({
+        transactions: [{
+          amount: {
+            total: '{{ price }}',
+            currency: 'USD'
+          }
+        }]
+      });
+    },
+    // Execute the payment
+    onAuthorize: function(data, actions) {
+      return actions.payment.execute().then(function() {
+        // Show a confirmation message to the buyer
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'order-confirmation' pk %}",
+            beforeSend: function(request) {
+                request.setRequestHeader('X-CSRFToken', csrftoken)
+            },
+            data: JSON.stringify({'isPaid': true}),
+            success: function(data) {
+                window.location.href = '/payment-confirmation/'
+            }
+        })
+      });
+    }
+  }, '#paypal-button');
+
+</script>
+
+<!-- map -->
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-sm-12 p-4 text-center">
+        <h1>Find us!</h1>
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3151.90781807907!2d-118.249066684916!3d34.0581205791398!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x80c2c75ddc27da13%3A0xe22fdf6f254608f4!2sLos+Angeles%2C+CA!5e0!3m2!1sen!2sus!4v1559245909853!5m2!1sen!2sus" width="400" height="300" frameborder="0" style="border:0" allowfullscreen></iframe>
+    </div>
+</div>
+
+<br>
+<br>
+
+
+{% endblock content %}
